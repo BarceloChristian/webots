@@ -412,9 +412,10 @@ void WbAddNodeDialog::buildTree() {
   QTreeWidgetItem *aprotosItem = WbPreferences::instance()->value("General/extraProjectsPath").toString().isEmpty() ?
                                    NULL :
                                    new QTreeWidgetItem(QStringList(tr("PROTO nodes (Extra Projects)")), PROTO_EXTRA);
-  QTreeWidgetItem *externalProtosItem = qEnvironmentVariable("WEBOTS_PROTO_PATH").isEmpty() ?
-                                          NULL :
-                                          new QTreeWidgetItem(QStringList(tr("PROTO nodes (External Projects)")), PROTO_EXTERNAL);
+  QTreeWidgetItem *externalProtosItem =
+    qEnvironmentVariable("WEBOTS_PROTO_PATH").isEmpty() ?
+      NULL :
+      new QTreeWidgetItem(QStringList(tr("PROTO nodes (External Projects)")), PROTO_EXTERNAL);
   basicNodes = WbNodeModel::baseModelNames();
 
   QTreeWidgetItem *item = NULL;
@@ -498,7 +499,7 @@ void WbAddNodeDialog::buildTree() {
     mIsAddingExternalProtos = true;
     QString externalProtoPath = qEnvironmentVariable("WEBOTS_PROTO_PATH");
     QStringList protoPaths = externalProtoPath.split(QString(":"), Qt::SkipEmptyParts);
-    for (const QString& path : protoPaths) {
+    foreach (const QString &path : protoPaths) {
       addProtosFromDirectory(externalProtosItem, path, mFindLineEdit->text(), QDir(path));
     }
     mIsAddingExternalProtos = false;
