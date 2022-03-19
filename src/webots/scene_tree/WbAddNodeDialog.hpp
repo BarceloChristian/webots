@@ -85,6 +85,7 @@ private:
   QStringList mUniqueExtraProtoNames;
   bool mIsAddingLocalProtos;
   bool mIsAddingExtraProtos;
+  bool mIsAddingExternalProtos;
 
   int addProtosFromDirectory(QTreeWidgetItem *parentItem, const QString &dirPath, const QRegularExpression &regexp,
                              const QDir &rootDirectory, bool recurse = true, bool inProtos = false);

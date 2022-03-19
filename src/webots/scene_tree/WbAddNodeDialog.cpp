@@ -46,7 +46,7 @@
 
 #include <cassert>
 
-enum { NEW = 10001, USE = 10002, PROTO_WEBOTS = 10003, PROTO_EXTRA = 10004, PROTO_PROJECT = 10005 };
+enum { NEW = 10001, USE = 10002, PROTO_WEBOTS = 10003, PROTO_EXTRA = 10004, PROTO_PROJECT = 10005, PROTO_EXTERNAL = 10006 };
 
 WbAddNodeDialog::WbAddNodeDialog(WbNode *currentNode, WbField *field, int index, QWidget *parent) :
   QDialog(parent),
@@ -59,7 +59,8 @@ WbAddNodeDialog::WbAddNodeDialog(WbNode *currentNode, WbField *field, int index,
   mActionType(CREATE),
   mIsFolderItemSelected(true),
   mIsAddingLocalProtos(false),
-  mIsAddingExtraProtos(false) {
+  mIsAddingExtraProtos(false),
+  mIsAddingExternalProtos(false) {
   assert(mCurrentNode && mField);
 
   // check if top node is a robot node
@@ -237,6 +238,9 @@ void WbAddNodeDialog::updateItemInfo() {
         mInfoText->setPlainText(tr("This folder lists all suitable PROTO nodes from the local 'protos' directory: '%1'.")
                                   .arg(WbProject::current()->protosPath()));
         break;
+      case PROTO_EXTERNAL:
+        mInfoText->setPlainText(tr("This folder lists all suitable PROTO nodes from the paths defined in WEBOTS_PROTO_PATH."));
+        break;
       case PROTO_WEBOTS:
         mInfoText->setPlainText(tr("This folder lists all suitable PROTO nodes provided by Webots."));
         break;
@@ -264,6 +268,7 @@ void WbAddNodeDialog::updateItemInfo() {
       case PROTO_WEBOTS:
       case PROTO_EXTRA:
       case PROTO_PROJECT:
+      case PROTO_EXTERNAL:
         mDefNodeIndex = -1;
         mNewNodeType = PROTO;
         showNodeInfo(selectedItem->text(FILE_NAME), PROTO);
@@ -407,6 +412,9 @@ void WbAddNodeDialog::buildTree() {
   QTreeWidgetItem *aprotosItem = WbPreferences::instance()->value("General/extraProjectsPath").toString().isEmpty() ?
                                    NULL :
                                    new QTreeWidgetItem(QStringList(tr("PROTO nodes (Extra Projects)")), PROTO_EXTRA);
+  QTreeWidgetItem *externalProtosItem = qEnvironmentVariable("WEBOTS_PROTO_PATH").isEmpty() ?
+                                          NULL :
+                                          new QTreeWidgetItem(QStringList(tr("PROTO nodes (External Projects)")), PROTO_EXTERNAL);
   basicNodes = WbNodeModel::baseModelNames();
 
   QTreeWidgetItem *item = NULL;
@@ -484,6 +492,18 @@ void WbAddNodeDialog::buildTree() {
     mIsAddingExtraProtos = false;
   }
 
+  // add PROTO from paths in WEBOTS_PROTO_PATH
+  // Multiple paths can be listed separated by a ":"
+  if (externalProtosItem) {
+    mIsAddingExternalProtos = true;
+    QString externalProtoPath = qEnvironmentVariable("WEBOTS_PROTO_PATH");
+    QStringList protoPaths = externalProtoPath.split(QString(":"), Qt::SkipEmptyParts);
+    for (const QString& path : protoPaths) {
+      addProtosFromDirectory(externalProtosItem, path, mFindLineEdit->text(), QDir(path));
+    }
+    mIsAddingExternalProtos = false;
+  }
+
   // add Webots PROTO
   int nWProtosNodes = 0;
   nWProtosNodes =
@@ -495,6 +515,8 @@ void WbAddNodeDialog::buildTree() {
     mTree->addTopLevelItem(lprotosItem);
   if (aprotosItem)
     mTree->addTopLevelItem(aprotosItem);
+  if (externalProtosItem)
+    mTree->addTopLevelItem(externalProtosItem);
   mTree->addTopLevelItem(wprotosItem);
 
   // initial selection
@@ -502,13 +524,14 @@ void WbAddNodeDialog::buildTree() {
   const int nUseNodes = mUsesItem ? mUsesItem->childCount() : 0;
   const int nLProtosNodes = lprotosItem ? lprotosItem->childCount() : 0;
   const int nAProtosNodes = aprotosItem ? aprotosItem->childCount() : 0;
+  const int nEProtosNodes = externalProtosItem ? externalProtosItem->childCount() : 0;
 
   // if everything can fit in the tree height then show all
-  if (nBasicNodes + nUseNodes + nLProtosNodes + nAProtosNodes + nWProtosNodes < 20)
+  if (nBasicNodes + nUseNodes + nLProtosNodes + nAProtosNodes + nEProtosNodes + nWProtosNodes < 20)
     mTree->expandAll();
 
   // if no USE nor PROTO items
-  if (nBasicNodes && !nUseNodes && !nLProtosNodes && !nAProtosNodes && !nWProtosNodes)
+  if (nBasicNodes && !nUseNodes && !nLProtosNodes && !nAProtosNodes && !nEProtosNodes && !nWProtosNodes)
     // then select first basic node
     mTree->setCurrentItem(nodesItem->child(0));
   else
