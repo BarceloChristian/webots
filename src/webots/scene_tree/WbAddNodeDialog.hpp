@@ -86,6 +86,8 @@ private:
   bool mIsAddingLocalProtos;
   bool mIsAddingExtraProtos;
 
+  int splitAndAddProtosFromDirectory(QTreeWidgetItem *parentItem, const QString &dirPaths, const QRegularExpression &regexp,
+                                     bool recurse = true, bool inProtos = false);
   int addProtosFromDirectory(QTreeWidgetItem *parentItem, const QString &dirPath, const QRegularExpression &regexp,
                              const QDir &rootDirectory, bool recurse = true, bool inProtos = false);
   int addProtos(QTreeWidgetItem *parentItem, const QStringList &protoList, const QString &dirPath,

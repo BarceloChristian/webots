@@ -86,6 +86,8 @@ private:
   static void updateResourcesProtoCache();
   static void updateExtraProtoCache();
   void updatePrimaryProtoCache();
+
+  static void splitAndUpdateExtraPaths(const QString &extraPaths, QFileInfoList &protoList);
 };
 
 #endif

@@ -20,6 +20,7 @@
 //
 
 #include <QtCore/QDir>
+#include <QtCore/QList>
 #include <QtCore/QString>
 
 class WbProject : public QObject {
@@ -37,7 +38,7 @@ public:
   static WbProject *defaultProject();
 
   // the special "default" project in the 'extra projects': "EXTRA_PROJECT_PATH/default"
-  static WbProject *extraDefaultProject();
+  static QList<WbProject *> *extraDefaultProjects();
 
   // e.g. /home/yvan/project/worlds/ghostdog.wbt -> /home/yvan/project
   static QString projectPathFromWorldFile(const QString &fileName, bool &valid);
@@ -83,9 +84,11 @@ signals:
 private:
   QString mPath;
 
+  static void splitAndAppendProjects(QList<WbProject *> *projects, const QString &projectPaths);
+
   static void cleanupCurrentProject();
   static void cleanupDefaultProject();
-  static void cleanupExtraDefaultProject();
+  static void cleanupExtraDefaultProjects();
   static void cleanupSystemProject();
 };
 

@@ -39,7 +39,7 @@ static QString gPreviousPath = QString();
 static WbProject *gCurrentProject = NULL;
 static WbProject *gSystemProject = NULL;
 static WbProject *gDefaultProject = NULL;
-static WbProject *gExtraDefaultProject = NULL;
+static QList<WbProject *> *gExtraDefaultProjects = NULL;
 
 void WbProject::cleanupCurrentProject() {
   delete gCurrentProject;
@@ -49,8 +49,10 @@ void WbProject::cleanupDefaultProject() {
   delete gDefaultProject;
 }
 
-void WbProject::cleanupExtraDefaultProject() {
-  delete gExtraDefaultProject;
+void WbProject::cleanupExtraDefaultProjects() {
+  foreach (WbProject *extraDefaultProject, *gExtraDefaultProjects)
+    delete extraDefaultProject;
+  delete gExtraDefaultProjects;
 }
 
 void WbProject::cleanupSystemProject() {
@@ -75,14 +77,23 @@ WbProject *WbProject::defaultProject() {
   return gDefaultProject;
 }
 
-WbProject *WbProject::extraDefaultProject() {
-  if (gExtraDefaultProject == NULL && !WbPreferences::instance()->value("General/extraProjectsPath").toString().isEmpty() &&
-      QDir(WbPreferences::instance()->value("General/extraProjectsPath").toString() + "/default/").exists()) {
-    gExtraDefaultProject =
-      new WbProject(WbPreferences::instance()->value("General/extraProjectsPath").toString() + "/default/");
-    qAddPostRoutine(WbProject::cleanupExtraDefaultProject);
+void WbProject::splitAndAppendProjects(QList<WbProject *> *projects, const QString &projectPaths) {
+  QStringList splittedProjectPaths = projectPaths.split(QDir::listSeparator(), Qt::SkipEmptyParts);
+  foreach (const QString &projectPath, splittedProjectPaths)
+    *projects << new WbProject(projectPath);
+}
+
+QList<WbProject *> *WbProject::extraDefaultProjects() {
+  if (gExtraDefaultProjects == NULL) {
+    if (!WbPreferences::instance()->value("General/extraProjectsPath").toString().isEmpty()) {
+      splitAndAppendProjects(gExtraDefaultProjects, WbPreferences::instance()->value("General/extraProjectsPath").toString());
+    }
+    if (!qEnvironmentVariable("WEBOTS_EXTRA_PROJECT_PATH").isEmpty()) {
+      splitAndAppendProjects(gExtraDefaultProjects, qEnvironmentVariable("WEBOTS_EXTRA_PROJECT_PATH"));
+    }
+    qAddPostRoutine(WbProject::cleanupExtraDefaultProjects);
   }
-  return gExtraDefaultProject;
+  return gExtraDefaultProjects;
 }
 
 WbProject *WbProject::system() {

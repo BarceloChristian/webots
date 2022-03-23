@@ -231,7 +231,7 @@ void WbAddNodeDialog::updateItemInfo() {
         break;
       case PROTO_EXTRA:
         mInfoText->setPlainText(tr("This folder lists all suitable PROTO nodes from the extra projects located in: '%1'.\n"
-                                   "Paths defined in the 'WEBOTS_EXTRA_PROTO' environment variable are also included.")
+                                   "Paths defined in the 'WEBOTS_EXTRA_PROJECT_PATH' environment variable are also included.")
                                   .arg(WbPreferences::instance()->value("General/extraProjectsPath").toString()));
         break;
       case PROTO_PROJECT:
@@ -406,7 +406,7 @@ void WbAddNodeDialog::buildTree() {
   mUsesItem = new QTreeWidgetItem(QStringList("USE"), USE);
   QTreeWidgetItem *lprotosItem = new QTreeWidgetItem(QStringList(tr("PROTO nodes (Current Project)")), PROTO_PROJECT);
   QTreeWidgetItem *aprotosItem = WbPreferences::instance()->value("General/extraProjectsPath").toString().isEmpty() &&
-                                     qEnvironmentVariable("WEBOTS_EXTRA_PROTO").isEmpty() ?
+                                     qEnvironmentVariable("WEBOTS_EXTRA_PROJECT_PATH").isEmpty() ?
                                    NULL :
                                    new QTreeWidgetItem(QStringList(tr("PROTO nodes (Extra Projects)")), PROTO_EXTRA);
   basicNodes = WbNodeModel::baseModelNames();
@@ -479,17 +479,19 @@ void WbAddNodeDialog::buildTree() {
   }
 
   // add extra PROTO from the 'General/extraProjectsPath' preference and
-  // the environment variable 'WEBOTS_EXTRA_PROTO'
-  // Multiple paths can be listed in 'WEBOTS_EXTRA_PROTO' if separated by a ":"
+  // the environment variable 'WEBOTS_EXTRA_PROJECT_PATH'
+  // Multiple paths can be listed in if separated by a ":" (or ";" on Windows)
   if (aprotosItem) {
     mIsAddingExtraProtos = true;
+
     const QString &extraProjectsPath = WbPreferences::instance()->value("General/extraProjectsPath").toString();
     if (!extraProjectsPath.isEmpty())
-      addProtosFromDirectory(aprotosItem, extraProjectsPath, regexp, QDir(extraProjectsPath));
-    QString externalProtoPath = qEnvironmentVariable("WEBOTS_EXTRA_PROTO");
-    QStringList protoPaths = externalProtoPath.split(QString(":"), Qt::SkipEmptyParts);
-    foreach (const QString &path, protoPaths)
-      addProtosFromDirectory(aprotosItem, path, regexp, QDir(path));
+      splitAndAddProtosFromDirectory(aprotosItem, extraProjectsPath, regexp);
+
+    const QString &envProjectsPath = qEnvironmentVariable("WEBOTS_EXTRA_PROJECT_PATH");
+    if (!envProjectsPath.isEmpty())
+      splitAndAddProtosFromDirectory(aprotosItem, envProjectsPath, regexp);
+
     mIsAddingExtraProtos = false;
   }
 
@@ -524,6 +526,15 @@ void WbAddNodeDialog::buildTree() {
     mTree->setCurrentItem(nodesItem);
 
   updateItemInfo();
+}
+
+int WbAddNodeDialog::splitAndAddProtosFromDirectory(QTreeWidgetItem *parentItem, const QString &dirPaths,
+                                                    const QRegularExpression &regexp, bool recurse, bool inProtos) {
+  QStringList protoPaths = dirPaths.split(QDir::listSeparator(), Qt::SkipEmptyParts);
+  int nAddedNodes = 0;
+  foreach (const QString &path, protoPaths)
+    nAddedNodes += addProtosFromDirectory(parentItem, path, regexp, QDir(path), recurse, inProtos);
+  return nAddedNodes;
 }
 
 int WbAddNodeDialog::addProtosFromDirectory(QTreeWidgetItem *parentItem, const QString &dirPath,

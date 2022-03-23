@@ -110,12 +110,13 @@ void WbProtoList::updateProjectsProtoCache() {
 void WbProtoList::updateExtraProtoCache() {
   gExtraProtoCache.clear();
   QFileInfoList protosInfo;
+
   if (!WbPreferences::instance()->value("General/extraProjectsPath").toString().isEmpty())
-    findProtosRecursively(WbPreferences::instance()->value("General/extraProjectsPath").toString(), protosInfo);
-  QString envProtoPath = qEnvironmentVariable("WEBOTS_EXTRA_PROTO");
-  QStringList protoPaths = envProtoPath.split(QString(":"), Qt::SkipEmptyParts);
-  foreach (const QString &path, protoPaths)
-    findProtosRecursively(path, protosInfo);
+    splitAndUpdateExtraPaths(WbPreferences::instance()->value("General/extraProjectsPath").toString(), protosInfo);
+
+  if (!qEnvironmentVariable("WEBOTS_EXTRA_PROJECT_PATH").isEmpty())
+    splitAndUpdateExtraPaths(qEnvironmentVariable("WEBOTS_EXTRA_PROJECT_PATH"), protosInfo);
+
   gExtraProtoCache << protosInfo;
 }
 
@@ -232,4 +233,10 @@ QStringList WbProtoList::fileList(int cache) {
     list.append(fi.baseName());
 
   return list;
+}
+
+void WbProtoList::splitAndUpdateExtraPaths(const QString &extraPaths, QFileInfoList &protoList) {
+  QStringList protoPaths = extraPaths.split(QDir::listSeparator(), Qt::SkipEmptyParts);
+  foreach (const QString &path, protoPaths)
+    findProtosRecursively(path, protoList);
 }
