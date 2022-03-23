@@ -17,6 +17,7 @@
 #include "WbNode.hpp"
 #include "WbParser.hpp"
 #include "WbPreferences.hpp"
+#include "WbProject.hpp"
 #include "WbProtoModel.hpp"
 #include "WbStandardPaths.hpp"
 #include "WbTokenizer.hpp"
@@ -110,12 +111,9 @@ void WbProtoList::updateProjectsProtoCache() {
 void WbProtoList::updateExtraProtoCache() {
   gExtraProtoCache.clear();
   QFileInfoList protosInfo;
-  if (!WbPreferences::instance()->value("General/extraProjectsPath").toString().isEmpty())
-    findProtosRecursively(WbPreferences::instance()->value("General/extraProjectsPath").toString(), protosInfo);
-  QString envProtoPath = qEnvironmentVariable("WEBOTS_EXTRA_PROTO");
-  QStringList protoPaths = envProtoPath.split(QString(":"), Qt::SkipEmptyParts);
-  foreach (const QString &path, protoPaths)
-    findProtosRecursively(path, protosInfo);
+
+  foreach (const WbProject *project, *WbProject::extraProjects()) { findProtosRecursively(project->path(), protosInfo); }
+
   gExtraProtoCache << protosInfo;
 }
 
